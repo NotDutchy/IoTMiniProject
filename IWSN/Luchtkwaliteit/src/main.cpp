@@ -68,11 +68,11 @@ void readGas() {
     Serial.println("----------------------");
 } else {
     Serial.println("No data received");
-}
+  }
 }
 
 void wakeUp() {
-  Serial.println("Waking up gas sensor");
+  Serial.println("Waking up gas sensor"); 
   Wire.beginTransmission(GAS_SENSOR_ADDRESS);
   Wire.write(0x11);
   Wire.endTransmission();
@@ -131,5 +131,4 @@ void I2CTest() {
     Serial.print("I2C Communication failed, error code: ");
     Serial.println(error);
   }
-  
 }
