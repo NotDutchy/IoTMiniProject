@@ -2,17 +2,21 @@
 #include <Wire.h>
 #include "MutichannelGasSensor.h"
 #include <DHT.h>
+#include "Adafruit_CCS811.h"
 
 #define GAS_SENSOR_ADDRESS 0x08
+#define AIRQUALITY_SENSOR_ADDRESS 0x5B
 #define DHTPIN 0 
 #define DHTTYPE DHT11
 
 DHT dht(DHTPIN, DHTTYPE);
+Adafruit_CCS811 airQualitySensor;
 
 // put function declarations here:
 void wakeUp();
 void readTemp();
 void readGas();
+void readAirQuality();
 void I2CChecker();
 void I2CReset();
 void I2CTest();
@@ -25,14 +29,22 @@ void setup() {
   Serial.println("Initializing!");
   I2CReset();
   Wire.begin();
+  if (!airQualitySensor.begin(AIRQUALITY_SENSOR_ADDRESS))
+  {
+    /* code */
+    Serial.println("Failed to start sensor!");
+    while (1);
+  }
+  while (!airQualitySensor.available());
   I2CTest();
   dht.begin();
 }
 
 void loop() {
-  readTemp();
   //I2CChecker();
-  readGas();
+  readTemp();
+  readAirQuality();
+  //readGas();
   delay(2000);
 }
 
@@ -68,6 +80,23 @@ void readGas() {
     Serial.println("----------------------");
 } else {
     Serial.println("No data received");
+  }
+}
+
+void readAirQuality() {
+  if (airQualitySensor.available())
+  {
+    /* code */
+    if (!airQualitySensor.readData())
+    {
+      /* code */
+      Serial.print("CO2 (ppm): ");
+      Serial.print(airQualitySensor.geteCO2());
+      Serial.print(" | TVOC (ppb): ");
+      Serial.println(airQualitySensor.getTVOC());
+    } else {
+      Serial.println("Error reading CO2 Data");
+    }
   }
 }
 
