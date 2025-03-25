@@ -4,6 +4,7 @@
 #include <DHT.h>
 #include "Adafruit_CCS811.h"
 #include <XBee.h>
+#include <ArduinoJson.h>
 
 #define GAS_SENSOR_ADDRESS 0x08
 #define AIRQUALITY_SENSOR_ADDRESS 0x5B
@@ -13,6 +14,12 @@
 DHT dht(DHTPIN, DHTTYPE);
 Adafruit_CCS811 airQualitySensor;
 XBee xbee = XBee();
+XBeeAddress64 coordinatorAddress = XBeeAddress64(0x13A200, 0x40E91CAD);
+
+float temp;
+float humidity;
+uint16_t co2;
+uint16_t tvoc;
 
 // put function declarations here:
 void wakeUp();
@@ -22,6 +29,7 @@ void readAirQuality();
 void I2CChecker();
 void I2CReset();
 void I2CTest();
+void sendData();
 
 void setup() {
   // put your setup code here, to run once:
@@ -49,17 +57,18 @@ void loop() {
   //I2CChecker();
   readTemp();
   readAirQuality();
+  sendData();
   //readGas();
-  delay(2000);
+  delay(5000);
 }
 
 void readTemp() {
-  float temperature = dht.readTemperature();
-  float humidity = dht.readHumidity();
-  if (!isnan(temperature) && !isnan(humidity))
+  temp = dht.readTemperature();
+  humidity = dht.readHumidity();
+  if (!isnan(temp) && !isnan(humidity))
   {
     /* code */
-    Serial.print("Temperature: "); Serial.print(temperature); Serial.println(" °C");
+    Serial.print("Temperature: "); Serial.print(temp); Serial.println(" °C");
     Serial.print("Humidity: "); Serial.print(humidity); Serial.println(" %");
   } else {
      Serial.println("Failed to read data from DHT11");
@@ -95,14 +104,33 @@ void readAirQuality() {
     if (!airQualitySensor.readData())
     {
       /* code */
+      co2 = airQualitySensor.geteCO2();
+      tvoc = airQualitySensor.getTVOC();
       Serial.print("CO2 (ppm): ");
-      Serial.print(airQualitySensor.geteCO2());
+      Serial.print(co2);
       Serial.print(" | TVOC (ppb): ");
-      Serial.println(airQualitySensor.getTVOC());
+      Serial.println(tvoc);
     } else {
       Serial.println("Error reading CO2 Data");
     }
   }
+}
+
+void sendData() {
+  Serial.println("Sending data");
+  char payload[100];
+  StaticJsonDocument<100> doc;
+  doc["temp"] = temp;
+  doc["humidity"] = humidity;
+  doc["co2"] = co2;
+  doc["tvoc"] = tvoc;
+
+  size_t jsonLength = serializeJson(doc, payload, sizeof(payload));
+
+  Tx64Request tx = Tx64Request(coordinatorAddress, (u_int8_t*)payload, jsonLength);
+  xbee.send(tx);
+  Serial.print("Sent Json: ");
+  Serial.println(payload);
 }
 
 void wakeUp() {
