@@ -3,6 +3,7 @@
 #include "MutichannelGasSensor.h"
 #include <DHT.h>
 #include "Adafruit_CCS811.h"
+#include <XBee.h>
 
 #define GAS_SENSOR_ADDRESS 0x08
 #define AIRQUALITY_SENSOR_ADDRESS 0x5B
@@ -11,6 +12,7 @@
 
 DHT dht(DHTPIN, DHTTYPE);
 Adafruit_CCS811 airQualitySensor;
+XBee xbee = XBee();
 
 // put function declarations here:
 void wakeUp();
@@ -24,7 +26,10 @@ void I2CTest();
 void setup() {
   // put your setup code here, to run once:
   Serial.begin(115200);
-  while (!Serial);
+  Serial1.begin(9600);
+  while (!Serial && !Serial1);
+
+  xbee.begin(Serial1);
   
   Serial.println("Initializing!");
   I2CReset();
