@@ -1,5 +1,6 @@
 import serial
 import time
+import json
 import paho.mqtt.client as mqtt
 
 MQTT_BROKER = 'localhost'
@@ -32,6 +33,22 @@ def publish_to_mqtt(data):
                 print("Publishing data to MQTT: {data}")
         mqtt_client.publish(MQTT_TOPIC, data)
 
+def clean_data(data):
+        raw_data = data
+        start_index = raw_data.find("{")
+        parsed_data = raw_data
+        if start_index != -1:
+                json_data = raw_data[start_index:]
+                end_index = json_data.rfind("}") + 1
+                json_clean = json_data[:end_index]
+
+                try:
+                        parsed_data = json_clean
+                        print(f"Parsed JSON: {parsed_data}")
+                except json.JSONDecodeError:
+                        print("Invalid JSON data received")
+        return parsed_data
+
 def main():
         connect_mqtt()
         mqtt_client.loop_start()
@@ -41,7 +58,7 @@ def main():
                         xbee_data = read_xbee_data()
                         print(f"Found xbee data: {xbee_data}")
                         if xbee_data:
-                                publish_to_mqtt(xbee_data)
+                                publish_to_mqtt(clean_data(xbee_data))
                         else:
                                 print("No data available")
                         time.sleep(1)
