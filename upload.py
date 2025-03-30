@@ -2,10 +2,15 @@ import serial
 import time
 import json
 import paho.mqtt.client as mqtt
+from influxdb import InfluxDBClient
 
 MQTT_BROKER = 'localhost'
 MQTT_TOPIC = "sensor/data"
 MQTT_PORT = 1883
+
+DB_HOST = "localhost"
+DB_PORT = 8086
+DB_NAME = "sensor_data"
 
 SERIAL_PORT = '/dev/ttyUSB0'
 BAUD_RATE = 9600
@@ -34,23 +39,37 @@ def publish_to_mqtt(data):
         mqtt_client.publish(MQTT_TOPIC, data)
 
 def clean_data(data):
-        raw_data = data
-        start_index = raw_data.find("{")
-        parsed_data = raw_data
+        start_index = data.find("{")
         if start_index != -1:
-                json_data = raw_data[start_index:]
+                json_data = data[start_index:]
                 end_index = json_data.rfind("}") + 1
                 json_clean = json_data[:end_index]
-
+                parsed_data = json.loads(json_clean)
                 try:
-                        parsed_data = json_clean
                         print(f"Parsed JSON: {parsed_data}")
+                        return parsed_data
                 except json.JSONDecodeError:
                         print("Invalid JSON data received")
-        return parsed_data
+                        return None
+
+def insert_data(db_client, data):
+        json_body = [
+                {
+                        "measurement": "sensor_readings",
+                        "fields": {
+                                "temp": data.get("temp", 0),
+                                "humidity": data.get("humidity", 0),
+                                "co2": data.get("co2", 0),
+                                "tvoc": data.get("tvoc",0)
+                        }
+                }
+        ]
+        db_client.write_points(json_body)
+        print("Data inserted into InfluxDB:", json_body)
 
 def main():
         connect_mqtt()
+        db_client = InfluxDBClient(host=DB_HOST, port=DB_PORT, database=DB_NAME)
         mqtt_client.loop_start()
 
         try:
@@ -58,7 +77,11 @@ def main():
                         xbee_data = read_xbee_data()
                         print(f"Found xbee data: {xbee_data}")
                         if xbee_data:
-                                publish_to_mqtt(clean_data(xbee_data))
+                                parsed_data = clean_data(xbee_data)
+
+                                if parsed_data:
+                                        insert_data(db_client, parsed_data)
+                                        publish_to_mqtt(json.dumps(parsed_data))
                         else:
                                 print("No data available")
                         time.sleep(1)
@@ -67,5 +90,6 @@ def main():
         finally:
                 xbee_serial.close()
                 mqtt_client.loop_stop()
+                db_client.close()
 if __name__ == "__main__":
         main()

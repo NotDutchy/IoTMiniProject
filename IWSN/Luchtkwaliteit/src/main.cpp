@@ -59,6 +59,7 @@ void loop() {
   readAirQuality();
   sendData();
   //readGas();
+  
   delay(5000);
 }
 
