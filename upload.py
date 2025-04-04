@@ -57,7 +57,7 @@ def insert_data(db_client, data):
                 {
                         "measurement": "sensor_readings",
                         "fields": {
-                                "temp": data.get("temp", 0),
+                                "temp": float(data.get("temp", 0)),
                                 "humidity": data.get("humidity", 0),
                                 "co2": data.get("co2", 0),
                                 "tvoc": data.get("tvoc",0)
