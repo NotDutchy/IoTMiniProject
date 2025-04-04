@@ -1,4 +1,5 @@
 #include <Arduino.h>
+#include <ArduinoLowPower.h>
 #include <Wire.h>
 #include "MutichannelGasSensor.h"
 #include <DHT.h>
