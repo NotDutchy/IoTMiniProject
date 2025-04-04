@@ -51,6 +51,7 @@ void setup() {
   while (!airQualitySensor.available());
   I2CTest();
   dht.begin();
+  delay(5000); // delay 5 extra seconds to let air quality sensor get values that are not 0
 }
 
 void loop() {
@@ -60,7 +61,7 @@ void loop() {
   sendData();
   //readGas();
   
-  delay(5000);
+  delay(60000);
 }
 
 void readTemp() {
